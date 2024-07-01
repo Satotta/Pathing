@@ -54,33 +54,39 @@ def findPath():
             while flag:
 
                 # Determine obstacle type
-                if len(Obstacle.obstacles) > 1:
+                if Obstacle.number_of_obstacles > 0:
                     
-                    # Create dropoff matrix the same size as obstacles
-                    start_pose_matrix = start_pose
-                    for j in range(1, len(Obstacle.obstacles)):
-                        start_pose_matrix = np.vstack((start_pose_matrix, start_pose))
-                    
-                    # Find distance between current start and each obstacle
-                    ob_dists = []
-                    ob_dists = cdist(Obstacle.centers, start_pose_matrix)
-                    ob_dists = ob_dists[:, 0]
-        
-                    # Loop thorugh obstacles and sort from closest to farthest
-                    min_index = np.argmin(ob_dists)
-                    obstacles_sorted = np.array([Obstacle.obstacles[min_index]])
-                    ob_dists[min_index] = np.inf
+                    # Init obstacles_sorted list
+                    obstacles_sorted = Obstacle.obstacles
 
-                    for j in range(1, len(Obstacle.obstacles)):
+                    # If more than one obstacle 
+                    if Obstacle.number_of_obstacles > 1:
 
-                        # Find minimum distance index
+                        # Create dropoff matrix the same size as obstacles 
+                        start_pose_matrix = start_pose
+                        for j in range(1, Obstacle.number_of_obstacles):
+                            start_pose_matrix = np.vstack((start_pose_matrix, start_pose))
+                        
+                        # Find distance between current start and each obstacle
+                        ob_dists = []
+                        ob_dists = cdist(Obstacle.centers, start_pose_matrix)
+                        ob_dists = ob_dists[:, 0]
+            
+                        # Loop thorugh obstacles and sort from closest to farthest
                         min_index = np.argmin(ob_dists)
-
-                        # Store obstacles order
-                        obstacles_sorted = np.hstack((obstacles_sorted, Obstacle.obstacles[min_index]))
-
-                        # Replace current distance value with large value
+                        obstacles_sorted = np.array([Obstacle.obstacles[min_index]])
                         ob_dists[min_index] = np.inf
+
+                        for j in range(1, Obstacle.number_of_obstacles):
+
+                            # Find minimum distance index
+                            min_index = np.argmin(ob_dists)
+
+                            # Store obstacles order
+                            obstacles_sorted = np.hstack((obstacles_sorted, Obstacle.obstacles[min_index]))
+
+                            # Replace current distance value with large value
+                            ob_dists[min_index] = np.inf
                     
                     # Define intersection counter for current path segment
                     k = 0
@@ -147,43 +153,6 @@ def findPath():
                     
                     # Determine if an obstacle was hit
                     if k == 0:
-
-                        # Set flag to false as there is no obstacle to avoid
-                        flag = False
-
-                        # Update path
-                        path_temp = np.vstack((path_temp, end_pose))
-
-                elif len(Obstacle.obstacles) == 1:
-
-                    # Determine path for avoiding obstacle
-                    new_path = Obstacle.obstacles[0].pathing(start_pose, end_pose)
-
-                    # If path is greater than 2 entries then avoidance is necessary
-                    if new_path.size == 4:
-                        
-                        # Set new start pose for next check
-                        start_pose = new_path[0, :]
-
-                        # Update path to reflect rerouting point
-                        path_temp = np.vstack((path_temp, start_pose))
-
-                        # Update counter now that rerouting point is necessary
-                        c += 1
-
-                    if new_path.size == 6:
-                        
-                        # Set new start pose for next check
-                        start_pose = new_path[1, :]
-
-                        # Update path to reflect rerouting point
-                        path_temp = np.vstack((path_temp, new_path[0:2, :]))
-
-                        # Update counter now that rerouting points are necessary
-                        c += 2
-
-                    # Otherwise
-                    else:
 
                         # Set flag to false as there is no obstacle to avoid
                         flag = False

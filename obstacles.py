@@ -6,6 +6,7 @@ from scipy.spatial.distance import cdist
 # Define abstacle class
 class Obstacle:
 
+
     # Init total number of obstacles
     number_of_obstacles = 0
 
@@ -14,6 +15,7 @@ class Obstacle:
 
     # Init list of obstacles
     obstacles = []
+
 
 
     # Define init method for obstacle
@@ -39,6 +41,65 @@ class Obstacle:
         else:
 
             Obstacle.centers = np.vstack((Obstacle.centers, self.center))
+
+    
+
+    # Define plot method to plot every obstacle
+    def plot(plt, ax):
+        
+        # Loop through each obstacle
+        for ob in Obstacle.obstacles:
+            
+            # Plot obstacle depending on type
+            if isinstance(ob, Circle):
+                circle = plt.Circle((ob.center[0], ob.center[1]), ob.true_radius, color = 'c')
+                ax.add_patch(circle)
+
+            else:
+                anchor_x = ob.center[0] - ob.width / 2
+                anchor_y = ob.center[1] - ob.height / 2
+                rectangle = plt.Rectangle((anchor_x, anchor_y), ob.width, ob.height, color = 'b')
+                ax.add_patch(rectangle)
+
+
+
+    # Define the sort method to sort obstacles based on distance from a given point
+    def sort(path_point):
+
+        # Init obstacles_sorted list
+        obstacles_sorted = Obstacle.obstacles
+
+        # If more than one obstacle 
+        if Obstacle.number_of_obstacles > 1:
+
+            # Create dropoff matrix the same size as obstacles 
+            start_pose_matrix = path_point
+            for i in range(1, Obstacle.number_of_obstacles):
+                start_pose_matrix = np.vstack((start_pose_matrix, path_point))
+                        
+                # Find distance between current start and each obstacle
+                ob_dists = []
+                ob_dists = cdist(Obstacle.centers, start_pose_matrix)
+                ob_dists = ob_dists[:, 0]
+            
+                # Loop thorugh obstacles and sort from closest to farthest
+                min_index = np.argmin(ob_dists)
+                obstacles_sorted = np.array([Obstacle.obstacles[min_index]])
+                ob_dists[min_index] = np.inf
+
+                for j in range(1, Obstacle.number_of_obstacles):
+
+                    # Find minimum distance index
+                    min_index = np.argmin(ob_dists)
+
+                    # Store obstacles order
+                    obstacles_sorted = np.hstack((obstacles_sorted, Obstacle.obstacles[min_index]))
+
+                    # Replace current distance value with large value
+                    ob_dists[min_index] = np.inf
+
+        return obstacles_sorted
+
 
 
 
@@ -456,6 +517,34 @@ class Rectangle(Obstacle):
 
 
 
+    # Define on_vertices method to determine if a point lies on any of the vertices
+    def on_vertices(self, path_point):
+
+        # Get the vertices
+        self.get_vertices()
+
+        # Return true if point lies on any of the vertices
+        if np.array_equal(path_point, self.bot_left):
+
+            return True
+
+        if np.array_equal(path_point, self.top_left):
+
+            return True
+
+        if np.array_equal(path_point, self.top_right):
+
+            return True
+
+        if np.array_equal(path_point, self.bot_right):
+
+            return True
+
+        # Otherwise return false
+        return False
+
+
+
     # Define pathing method to determine necessary intermediate points to avoid obstacle
     def pathing(self, start_pose, end_pose):
         
@@ -531,8 +620,11 @@ class Rectangle(Obstacle):
 
 
 
+
 # Define the Dropoff class
 class Dropoff:
+
+
 
     # Init the number of dropoffs
     number_of_dropoffs = 0
@@ -561,6 +653,20 @@ class Dropoff:
 
 
 
+    # Define plot method to plot the dropoffs
+    def plot(ax):
+
+        # Loop through dropoffs
+        for i in range(Dropoff.number_of_dropoffs):
+            
+            # Plot each dropoff on given axes
+            ax.plot(Dropoff.dropoffs[i, 0], Dropoff.dropoffs[i, 1], marker = '^', color = 'r')
+
+
+
+
+
+
 # Define the Pickup class
 class Pickup:
 
@@ -573,6 +679,16 @@ class Pickup:
         
         # Apply the global pickup location (will be overwritten if two pickups are defined)
         Pickup.location = np.array([[x, y]])
+
+
+
+    # Define plot method to plot the pickup
+    def plot(ax):
+
+        # Plot the pickup on given axes
+        ax.plot(Pickup.location[0, 0], Pickup.location[0, 1], marker = 'o', color = 'g')
+
+
 
 
 

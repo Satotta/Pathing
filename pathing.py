@@ -2,7 +2,7 @@ import numpy as np
 from scipy.spatial.distance import cdist
 from itertools import permutations
 import math
-from obstacles import Obstacle, Rectangle, Circle, Dropoff, Pickup
+from obstacles import Obstacle, Rectangle, Dropoff, Pickup
 import matplotlib.pyplot as plt
 import time
 
@@ -29,7 +29,7 @@ def findPath():
         # Initialize the path for this iteration
         path_temp = Pickup.location
 
-        # Initialize counter for this iteration
+        # Initialize rerouting point(s) counter
         c = 0
 
         for i in range(1, Dropoff.number_of_dropoffs + 2):
@@ -52,118 +52,53 @@ def findPath():
 
             # For current start and end, determine path until no intersections occur
             while flag:
-
-                # Determine obstacle type
-                if Obstacle.number_of_obstacles > 0:
-                    
-                    # Init obstacles_sorted list
-                    obstacles_sorted = Obstacle.obstacles
-
-                    # If more than one obstacle 
-                    if Obstacle.number_of_obstacles > 1:
-
-                        # Create dropoff matrix the same size as obstacles 
-                        start_pose_matrix = start_pose
-                        for j in range(1, Obstacle.number_of_obstacles):
-                            start_pose_matrix = np.vstack((start_pose_matrix, start_pose))
-                        
-                        # Find distance between current start and each obstacle
-                        ob_dists = []
-                        ob_dists = cdist(Obstacle.centers, start_pose_matrix)
-                        ob_dists = ob_dists[:, 0]
-            
-                        # Loop thorugh obstacles and sort from closest to farthest
-                        min_index = np.argmin(ob_dists)
-                        obstacles_sorted = np.array([Obstacle.obstacles[min_index]])
-                        ob_dists[min_index] = np.inf
-
-                        for j in range(1, Obstacle.number_of_obstacles):
-
-                            # Find minimum distance index
-                            min_index = np.argmin(ob_dists)
-
-                            # Store obstacles order
-                            obstacles_sorted = np.hstack((obstacles_sorted, Obstacle.obstacles[min_index]))
-
-                            # Replace current distance value with large value
-                            ob_dists[min_index] = np.inf
-                    
-                    # Define intersection counter for current path segment
-                    k = 0
-
-                    # Sort through each obstacle and search for intersection
-                    for ob in obstacles_sorted:
-
-                        # Check to see if object is a rectangle
-                        if isinstance(ob, Rectangle):
-
-                            # Check to see if starting position lies on a vertice
-                            ob.get_vertices()
-
-                            # If so, skip this object
-                            if np.array_equal(start_pose, ob.bot_left):
-
-                                continue
-
-                            if np.array_equal(start_pose, ob.top_left):
-
-                                continue
-
-                            if np.array_equal(start_pose, ob.top_right):
-
-                                continue
-
-                            if np.array_equal(start_pose, ob.bot_right):
-
-                                continue
-
-                        # Determine intersection
-                        new_path = ob.pathing(start_pose, end_pose)
-                        
-                        # Replace path with new path depending on number of rerouted points
-                        if new_path.size == 4:
-                            
-                            # Set new start pose for next check
-                            start_pose = new_path[0, :]
-
-                            # Update path to reflect rerouting point
-                            path_temp = np.vstack((path_temp, start_pose))
-
-                            # Update counters now that rerouting point is necessary
-                            c += 1
-                            k += 1
-
-                            # Break obstacle loop now that intersection has been found
-                            break
-
-                        if new_path.size == 6:
-        
-                            # Set new start pose for next check
-                            start_pose = new_path[1, :]
-
-                            # Update path to reflect rerouting point
-                            path_temp = np.vstack((path_temp, new_path[0:2, :]))
-
-                            # Update counters now that rerouting points are necessary
-                            c += 2
-                            k += 1
-
-                            # Break obstacle loop now that intersection has been found
-                            break
-                    
-                    # Determine if an obstacle was hit
-                    if k == 0:
-
-                        # Set flag to false as there is no obstacle to avoid
-                        flag = False
-
-                        # Update path
-                        path_temp = np.vstack((path_temp, end_pose))
                 
-                # Otherwise if no obstacles
-                else:
+                # Init not_hit flag to determine whether this iteration hit an object
+                not_hit = True
+ 
+                # Sort the obstacles based on distance from start_pose
+                obstacles_sorted = Obstacle.sort(start_pose)
 
-                    # Set flag to false as there are no obstacles
+                # Sort through each obstacle and search for intersection
+                for ob in obstacles_sorted:
+
+                    # Check to see if object is a rectangle
+                    if isinstance(ob, Rectangle):
+
+                        # Check if start_pose is on any of the vertices
+                        if ob.on_vertices(start_pose):
+                            
+                            # If so, this object has already been avoided so skip this object
+                            continue
+
+                    # Determine intersection
+                    new_path = ob.pathing(start_pose, end_pose)
+                    
+                    # Find necessary count indexing for path size
+                    size_index = int(new_path.size / 2 - 1)
+                    
+                    # If larger than zero than a rerouting poin tis necessary
+                    if size_index > 0:
+                        
+                        # Define the updated start pose as last rerouting point in new path
+                        start_pose = new_path[size_index - 1, :]
+
+                        # Append the rerouting point(s) to the current path
+                        path_temp = np.vstack((path_temp, new_path[0:size_index, :]))
+
+                        # Update the not_hit flag to False as an obstacle was hit
+                        not_hit = False
+
+                        # Update rerouting point(s) counter
+                        c += size_index
+
+                        # Break obstacle loop as an intersection was detected
+                        break
+                
+                # Determine if an obstacle was hit
+                if not_hit:
+
+                    # Set flag to false as there is no obstacle to avoid
                     flag = False
 
                     # Update path
@@ -188,38 +123,30 @@ def findPath():
             # Set prev path to new shartest
             dist_prev = dist_temp
     
-    # Plot the local path
+    # Define figure for plot
     fig = plt.figure(1)
-    ax1 = fig.add_subplot()
-    ax1.plot(path[:, 0], path[:, 1], color = 'k', linestyle = ':')
-    ax1.grid(True)
-    ax1.set_title('Optimized Path Visualization')
-    ax1.set_xlabel('X')
-    ax1.set_ylabel('Y')
 
+    # Define axes
+    ax = fig.add_subplot()
+
+    # Plot the local path
+    ax.plot(path[:, 0], path[:, 1], color = 'k', linestyle = ':')
+    
     # Plot pickup
-    ax1.plot(Pickup.location[0, 0], Pickup.location[0, 1], marker = 'o', color = 'g')
+    Pickup.plot(ax)
 
     # Plot each dropoff
-    for i in range(Dropoff.number_of_dropoffs):
-        
-        ax1.plot(Dropoff.dropoffs[i, 0], Dropoff.dropoffs[i, 1], marker = '^', color = 'r')
-
-    # Plot each obstacle
-    for ob in Obstacle.obstacles:
-
-        if isinstance(ob, Circle):
-            circle = plt.Circle((ob.center[0], ob.center[1]), ob.true_radius, color = 'c')
-            ax1.add_patch(circle)
-
-        else:
-            anchor_x = ob.center[0] - ob.width / 2
-            anchor_y = ob.center[1] - ob.height / 2
-            rectangle = plt.Rectangle((anchor_x, anchor_y), ob.width, ob.height, color = 'b')
-            ax1.add_patch(rectangle)
+    Dropoff.plot(ax)
     
-    # Define legend
-    ax1.legend(['Optimized Path', 'Pickup', 'Dropoffs'])
+    # Plot each obstacle
+    Obstacle.plot(plt, ax)
+    
+    # Define plot properties
+    ax.grid(True)
+    ax.set_title('Optimized Path Visualization')
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.legend(['Optimized Path', 'Pickup', 'Dropoffs'])
 
     # Display how much time has elapsed
     tf = time.time()

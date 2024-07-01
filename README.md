@@ -8,5 +8,6 @@ File 'obstacles.py' contains the classes and class-specific methods (OOP). File 
 
 See code comments for further details.
 
-![image](https://github.com/Satotta/Pathing/assets/89879340/fe3a0625-d16f-4f80-a589-5db1aa299de1)
+![image](https://github.com/Satotta/Pathing/assets/89879340/766300de-254a-431b-ae27-dd4712347de1)
+
 

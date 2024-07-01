@@ -7,3 +7,6 @@ To run, open the 'path_config.py' and add as many obstacles and dropoffs as desi
 File 'obstacles.py' contains the classes and class-specific methods (OOP). File 'pathing.py' contains the algorithm to loop through and call the class-specific methods as necessary to generate the optimal path.
 
 See code comments for further details.
+
+![image](https://github.com/Satotta/Pathing/assets/89879340/fe3a0625-d16f-4f80-a589-5db1aa299de1)
+

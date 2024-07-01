@@ -159,7 +159,8 @@ def findPath():
 
                         # Update path
                         path_temp = np.vstack((path_temp, end_pose))
-
+                
+                # Otherwise if no obstacles
                 else:
 
                     # Set flag to false as there are no obstacles
